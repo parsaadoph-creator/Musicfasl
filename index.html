@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Music Fasl | پخش‌کننده شیشه‌ای</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        *:focus,
+        *:focus-visible,
+        *:active {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, Tahoma, Arial, sans-serif;
+            color: #fff;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        .bg-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            background: url("https://cdn.imgurl.ir/uploads/e614334_file_00000000bbdc72439d79526ceebcb0c6.png") center center / cover no-repeat;
+            z-index: -3;
+        }
+
+        .glass-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(20, 25, 40, 0.35);
+            backdrop-filter: none;
+            z-index: -2;
+        }
+
+        .main-content {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            padding: 40px 20px;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+            visibility: hidden;
+        }
+
+        .main-content.visible {
+            opacity: 1;
+            transform: translateY(0);
+            visibility: visible;
+        }
+
+        /* ========== لودینگ قرمز ========== */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #1a0a0a 0%, #240f0f 100%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 32px;
+            transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s;
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loading-overlay.hide {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loading-brand {
+            text-align: center;
+            position: relative;
+        }
+
+        .music-logo {
+            font-size: 3.5rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+            background: linear-gradient(135deg, #ffffff, #ef4444, #f87171, #ef4444);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: gradientShift 2s ease infinite, floatGlow 2s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes floatGlow {
+            0% { transform: translateY(0px); text-shadow: 0 0 10px rgba(239,68,68,0.3); }
+            50% { transform: translateY(-5px); text-shadow: 0 0 25px rgba(239,68,68,0.6); }
+            100% { transform: translateY(0px); text-shadow: 0 0 10px rgba(239,68,68,0.3); }
+        }
+
+        .modern-loader {
+            width: 220px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .loader-bar-container {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .loader-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444, #f87171, #ef4444);
+            border-radius: 10px;
+            animation: loadingProgress 2.2s ease-out forwards;
+            position: relative;
+        }
+
+        @keyframes loadingProgress {
+            0% { width: 0%; }
+            30% { width: 45%; }
+            60% { width: 75%; }
+            100% { width: 100%; }
+        }
+
+        .loader-wave {
+            width: 100%;
+            height: 2px;
+            background: rgba(239, 68, 68, 0.3);
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+
+        .loader-wave::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, #ef4444, #f87171, transparent);
+            animation: waveSlide 1.2s ease-in-out infinite;
+        }
+
+        @keyframes waveSlide {
+            0% { left: -50%; }
+            100% { left: 100%; }
+        }
+
+        .pulse-circles {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .pulse-circles span {
+            width: 10px;
+            height: 10px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+
+        .pulse-circles span:nth-child(1) { animation-delay: 0s; background: #ef4444; }
+        .pulse-circles span:nth-child(2) { animation-delay: 0.2s; background: #f87171; }
+        .pulse-circles span:nth-child(3) { animation-delay: 0.4s; background: #fca5a5; }
+        .pulse-circles span:nth-child(4) { animation-delay: 0.6s; background: #ef4444; }
+        .pulse-circles span:nth-child(5) { animation-delay: 0.8s; background: #f87171; }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(0.6); opacity: 0.4; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+
+        .loading-text {
+            font-size: 0.9rem;
+            color: #fca5a5;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 8px 20px;
+            border-radius: 40px;
+            letter-spacing: 1px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            font-weight: 500;
+            animation: textPulse 1.8s ease-in-out infinite;
+        }
+
+        @keyframes textPulse {
+            0%, 100% { opacity: 0.7; border-color: rgba(239, 68, 68, 0.2); }
+            50% { opacity: 1; border-color: rgba(239, 68, 68, 0.6); }
+        }
+
+
+        .page-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .page-btn {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #ef4444;
+            color: white;
+            padding: 10px 32px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .page-btn.active {
+            background: #ef4444;
+            color: black;
+            box-shadow: 0 0 15px rgba(239,68,68,0.5);
+        }
+
+        .page-btn:hover {
+            transform: scale(1.02);
+            background: rgba(239,68,68,0.3);
+        }
+
+        .page-content {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .page-content.active-page {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ========== بقیه استایل‌ها ========== */
+        .glass-box {
+            max-width: 980px;
+            margin: 0 auto;
+            background: transparent;
+            padding: 28px 24px 36px;
+        }
+
+        .title-section {
+            text-align: center;
+            margin-bottom: 28px;
+            position: relative;
+        }
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f0f0f0, #f87171);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        h2::before { content: "🎵"; font-size: 1.9rem; color: #ef4444; background: none; }
+        h2::after { content: "🎧"; font-size: 1.7rem; color: #fca5a5; background: none; }
+
+        .animated-bar {
+            width: 120px;
+            height: 3px;
+            background: linear-gradient(90deg, #ef4444, #fca5a5, #ef4444);
+            margin: 12px auto 0;
+            border-radius: 10px;
+            animation: slideRightToLeft 1.8s ease-in-out forwards;
+            opacity: 0;
+        }
+        
+        @keyframes slideRightToLeft {
+            0% {
+                width: 0;
+                opacity: 1;
+                transform: translateX(20px);
+            }
+            100% {
+                width: 120px;
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .song-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .song-item {
+            background: transparent;
+            padding: 0;
+            border: none;
+            border-radius: 0;
+        }
+
+        .song-header {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .song-number {
+            background: rgba(0, 0, 0, 0.5);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+            padding: 4px 14px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .song-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 4px 14px;
+            border-radius: 40px;
+        }
+
+        audio {
+            width: 100%;
+            margin: 8px 0 10px;
+            border-radius: 50px;
+        }
+        
+        audio::-webkit-media-controls-panel {
+            background: #1a1e24;
+        }
+
+        .download-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            padding: 6px 20px;
+            border-radius: 40px;
+            text-decoration: none;
+            color: white;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: 0.2s;
+        }
+
+        .download-link:hover {
+            background: #ef4444;
+            color: black;
+            transform: scale(0.97);
+        }
+        
+        .download-link::before {
+            content: "⬇️";
+            font-size: 1rem;
+        }
+
+        .footer {
+            margin-top: 32px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.9);
+            padding: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+        @media (max-width: 700px) {
+            .main-content { padding: 20px 12px; }
+            .glass-box { padding: 20px 16px; }
+            .song-title { font-size: 0.85rem; }
+            h2 { font-size: 1.4rem; }
+            .music-logo { font-size: 2.5rem; }
+            .modern-loader { width: 180px; }
+            .page-btn { padding: 6px 20px; font-size: 0.9rem; }
+            .animated-bar {
+                width: 80px;
+                animation: slideRightToLeftMobile 1.8s ease-in-out forwards;
+            }
+            @keyframes slideRightToLeftMobile {
+                0% { width: 0; opacity: 1; transform: translateX(15px); }
+                100% { width: 80px; opacity: 1; transform: translateX(0); }
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="glass-overlay"></div>
+
+<!-- لودینگ قرمز -->
+<div class="loading-overlay" id="loadingScreen">
+    <div class="loading-brand">
+        <div class="music-logo">🎧 Music Fasl</div>
+    </div>
+    <div class="modern-loader">
+        <div class="loader-bar-container">
+            <div class="loader-bar"></div>
+        </div>
+        <div class="loader-wave"></div>
+    </div>
+    <div class="pulse-circles">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+    <div class="loading-text"> سایت  بروزسانی میشود </div>
+</div>
+
+<div class="main-content" id="mainContent">
+    <div class="glass-box">
+        
+        <!-- دکمه‌های تغییر صفحه -->
+        <div class="page-buttons">
+            <button class="page-btn active" data-page="rap">نوحه </button>
+            <button class="page-btn" data-page="funk">🕌 نوحه</button>
+        </div>
+
+        <!-- ========== نوحه ========== -->
+        <div class="page-content active-page" id="page-rap">
+            <div class="title-section">
+                <h2>نوحه</h2>
+                <div class="animated-bar"></div>
+            </div>
+            <ul class="song-list">
+                <li class="song-item">
+                    <div class="song-header">
+                        <span class="song-number">1</span>
+                        <span class="song-title">Remix Muharram 1400</span>
+                    </div>
+                    <audio controls preload="none">
+                        <source src="https://cdn.imgurl.ir/uploads/i35628_Remix_Muharram_1400.mp3" type="audio/mpeg">
+                    </audio>
+                    <a class="download-link" href="https://cdn.imgurl.ir/uploads/i35628_Remix_Muharram_1400.mp3" download>دانلود</a>
+                </li>
+                <li class="song-item">
+                    <div class="song-header">
+                        <span class="song-number">2</span>
+                        <span class="song-title">Madahi Remix 1</span>
+                    </div>
+                    <audio controls preload="none">
+                        <source src="https://cdn.imgurl.ir/uploads/o69534_Madahi_Remix_1_320.mp3" type="audio/mpeg">
+                    </audio>
+                    <a class="download-link" href="https://cdn.imgurl.ir/uploads/o69534_Madahi_Remix_1_320.mp3" download>دانلود</a>
+                </li>
+                <li class="song-item">
+                    <div class="song-header">
+                        <span class="song-number">3</span>
+                        <span class="song-title">Seyed Taleh Bakooei - Saslerem Karbala</span>
+                    </div>
+                    <audio controls preload="none">
+                        <source src="https://cdn.imgurl.ir/uploads/d59591_Remix_Seyed_Taleh_Bakooei_-_Saslerem_Karbala.mp3" type="audio/mpeg">
+                    </audio>
+                    <a class="download-link" href="https://cdn.imgurl.ir/uploads/d59591_Remix_Seyed_Taleh_Bakooei_-_Saslerem_Karbala.mp3" download>دانلود</a>
+                </li>
+                <li class="song-item">
+                    <div class="song-header">
+                        <span class="song-number">4</span>
+                        <span class="song-title">Seyed Taleh Bakooei - Hossein Karbobala</span>
+                    </div>
+                    <audio controls preload="none">
+                        <source src="https://cdn.imgurl.ir/uploads/o366507_Seyed_Taleh_Bakooei_-_Hossein_Karbobala.mp3" type="audio/mpeg">
+                    </audio>
+                    <a class="download-link" href="https://cdn.imgurl.ir/uploads/o366507_Seyed_Taleh_Bakooei_-_Hossein_Karbobala.mp3" download>دانلود</a>
+                </li>
+                <li class="song-item">
+                    <div class="song-header">
+                        <span class="song-number">5</span>
+                        <span class="song-title">Salim - Zeynab Zeynab</span>
+                    </div>
+                    <audio controls preload="none">
+                        <source src="https://cdn.imgurl.ir/uploads/y659846_Remix_Salim_-_Zeynab-Zeynab.mp3" type="audio/mpeg">
+                    </audio>
+                    <a class="download-link" href="https://cdn.imgurl.ir/uploads/y659846_Remix_Salim_-_Zeynab-Zeynab.mp3" download>دانلود</a>
+                </li>
+                <li class="song-item">
+                    <div class="song-header">
+                        <span class="song-number">6</span>
+                        <span class="song-title">Ali Abdolmaleki - Nashoddj K1 Ft Sina Safar</span>
+                    </div>
+                    <audio controls preload="none">
+                        <source src="https://cdn.imgurl.ir/uploads/m98157_Ali_Abdolmaleki_Nashoddj_K1_Ft_Sina_Safarimusicsfarsi_com_320.mp3" type="audio/mpeg">
+                    </audio>
+                    <a class="download-link" href="https://cdn.imgurl.ir/uploads/m98157_Ali_Abdolmaleki_Nashoddj_K1_Ft_Sina_Safarimusicsfarsi_com_320.mp3" download>دانلود</a>
+                </li>
+                <li class="song-item">
+                    <div class="song-header">
+                        <span class="song-number">7</span>
+                        <span class="song-title">Alireza Talischi - Alamdar Remix</span>
+                    </div>
+                    <audio controls preload="none">
+                        <source src="https://cdn.imgurl.ir/uploads/b03204_alireza_talischi_alamdar_remix.mp3" type="audio/mpeg">
+                    </audio>
+                    <a class="download-link" href="https://cdn.imgurl.ir/uploads/b03204_alireza_talischi_alamdar_remix.mp3" download>دانلود</a>
+                </li>
+<li class="song-item">
+    <div class="song-header">
+        <span class="song-number">8</span>
+        <span class="song-title">Seyed Taleh Bakooei - Ali Lay Lay (DJ Saeid Behnam Remix)</span>
+    </div>
+    <audio controls preload="none">
+        <source src="https://cdn.imgurl.ir/uploads/r878064_Seyed_Taleh_Bakooei_Ali_Lay_Laydj_Saeid_Behnamremix-320.mp3" type="audio/mpeg">
+    </audio>
+    <a class="download-link" href="https://cdn.imgurl.ir/uploads/r878064_Seyed_Taleh_Bakooei_Ali_Lay_Laydj_Saeid_Behnamremix-320.mp3" download>دانلود</a>
+</li>
+<li class="song-item">
+    <div class="song-header">
+        <span class="song-number">9</span>
+        <span class="song-title">Seyed Taleh Bakooei - Ilama Safar Samte Karbala</span>
+    </div>
+    <audio controls preload="none">
+        <source src="https://cdn.imgurl.ir/uploads/j684151_seyed_taleh_bakooei_ilama_safar_samte_karbala.mp3" type="audio/mpeg">
+    </audio>
+    <a class="download-link" href="https://cdn.imgurl.ir/uploads/j684151_seyed_taleh_bakooei_ilama_safar_samte_karbala.mp3" download>دانلود</a>
+                   </li>
+
+                       <li class="song-item">
+    <div class="song-header">
+        <span class="song-number">10</span>
+        <span class="song-title">Sar Lashgar</span>
+    </div>
+    <audio controls preload="none">
+        <source src="https://cdn.imgurl.ir/uploads/f258181__Sar_Lashgar.mp3" type="audio/mpeg">
+    </audio>
+    <a class="download-link" href="https://cdn.imgurl.ir/uploads/f258181__Sar_Lashgar.mp3" download>دانلود</a>
+                  </li> 
+            </ul>
+         </div>
+
+        <!-- ========== صفحه نوحه ========== -->
+        <div class="page-content" id="page-funk">
+            <div class="title-section">
+                <h2>نوحه‌ها</h2>
+                <div class="animated-bar">این سایت بروز میشود </div>
+            </div>
+            <ul class="song-list">
+                <!-- لیست خالی برای اضافه کردن نوحه‌ها -->
+            </ul>
+        </div>
+
+        <div class="footer"> 
+تمامی حقوق این سایت متعلق به پارسا است</div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const loadingDiv = document.getElementById('loadingScreen');
+        const mainDiv = document.getElementById('mainContent');
+        
+        if (loadingDiv && mainDiv) {
+            setTimeout(function() {
+                loadingDiv.classList.add('hide');
+                mainDiv.classList.add('visible');
+                setTimeout(function() {
+                    loadingDiv.style.display = 'none';
+                }, 500);
+            }, 2200);
+        }
+        
+        // دکمه‌های تغییر صفحه
+        const rapBtn = document.querySelector('[data-page="rap"]');
+        const funkBtn = document.querySelector('[data-page="funk"]');
+        const rapPage = document.getElementById('page-rap');
+        const funkPage = document.getElementById('page-funk');
+        
+        function switchPage(page) {
+            if (page === 'rap') {
+                rapPage.classList.add('active-page');
+                funkPage.classList.remove('active-page');
+                rapBtn.classList.add('active');
+                funkBtn.classList.remove('active');
+            } else if (page === 'funk') {
+                funkPage.classList.add('active-page');
+                rapPage.classList.remove('active-page');
+                funkBtn.classList.add('active');
+                rapBtn.classList.remove('active');
+            }
+        }
+        
+        if (rapBtn && funkBtn) {
+            rapBtn.addEventListener('click', function() { switchPage('rap'); });
+            funkBtn.addEventListener('click', function() { switchPage('funk'); });
+        }
+        
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                if (loadingDiv && mainDiv) {
+                    loadingDiv.style.display = 'flex';
+                    loadingDiv.classList.remove('hide');
+                    mainDiv.classList.remove('visible');
+                    setTimeout(function() {
+                        loadingDiv.classList.add('hide');
+                        mainDiv.classList.add('visible');
+                        setTimeout(function() {
+                            loadingDiv.style.display = 'none';
+                        }, 500);
+                    }, 2200);
+                }
+            }
+        });
+        
+        const audios = document.querySelectorAll('audio');
+        audios.forEach(a => a.preload = 'none');
+    })();
+</script>
+</body>
+</html>
